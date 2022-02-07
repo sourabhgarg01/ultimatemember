@@ -359,6 +359,10 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 			$fields = UM()->query()->get_attr( 'custom_fields', $form_id );
 			$field_scope = UM()->builtin()->predefined_fields;
 
+			if( ! is_array( $fields ) ){
+				$fields = array();
+			}
+
 			if ( ! isset( $fields[ $global_id ] ) ) {
 
 				$count = 1;
@@ -3863,7 +3867,7 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 		 * @return string
 		 */
 		function get_fields_by_row( $row_id ) {
-			if ( ! isset( $this->get_fields ) ) {
+			if ( ! isset( $this->get_fields ) || ! is_array( $this->get_fields ) ) {
 				return '';
 			}
 
@@ -4453,7 +4457,7 @@ if ( ! class_exists( 'um\core\Fields' ) ) {
 				}
 			}
 
-			if ( ! empty( $this->get_fields ) ) {
+			if ( ! empty( $this->get_fields ) && is_array( $this->get_fields ) ) {
 
 				// find rows
 				foreach ( $this->get_fields as $key => $array ) {
