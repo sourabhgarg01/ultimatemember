@@ -3,7 +3,7 @@
  *
  * @author  Ultimate Member
  * @since   UM 3.0
- * @version 1.0.0
+ * @version 1.0.1
  *
  * @link    https://docs.ultimatemember.com/
  */
@@ -29,7 +29,7 @@
 			header: '',
 			size: 'normal', // small, normal, large
 			template: '',
-			content: '',
+			content: ''
 		};
 
 		this.defaultTemplate = '<div class="um-modal"><span class="um-modal-close">&times;</span><div class="um-modal-header"></div><div class="um-modal-body"></div><div class="um-modal-footer"></div></div>';
@@ -47,9 +47,9 @@
 
 		/**
 		 * Add and display a modal
-		 * @param   {object} options         Modal properties. Optional.
-		 * @param   {object} event         Modal properties. Optional.
-		 * @returns {object}                 A modal jQuery object.
+		 * @param   {object} options  Modal properties. Optional.
+		 * @param   {object} event    jQuery event object. Optional.
+		 * @returns {object}          A modal jQuery object.
 		 */
 		addModal: function (options, event) {
 			options = this.filterOptions( options );
@@ -82,7 +82,7 @@
 			switch ( typeof options.content ) {
 				case 'function':
 					let res = options.content.apply( $modal, [event, options] );
-					if ( typeof res === 'object' && typeof res.readyState === 'number' && typeof res.done === 'function' ) {
+					if ( typeof res === 'object' && typeof res.done === 'function' && typeof res.fail === 'function' ) {
 
 						/**
 						 * Action fired before loading modal content by AJAX
@@ -90,13 +90,20 @@
 						wp.hooks.doAction( 'um-modal-before-ajax', $modal, options, res );
 						this.loading( true, $modal );
 
-						res.done( function (data) {
-
-							/**
-							 * Action fired after loading modal content by AJAX
-							 */
-							wp.hooks.doAction( 'um-modal-after-ajax', $modal, data, res );
+						res.always( function () {
 							UM.modal.loading( false, $modal );
+						} ).done( function ( data ) {
+							if ( typeof data === 'string' && $modal.find( '.um-modal-body' ).children().length === 0 ) {
+								UM.modal.setContent( data, $modal );
+							}
+
+							// Action fired if modal content AJAX request is successful
+							wp.hooks.doAction( 'um-modal-after-ajax', $modal, data, res );
+						} ).fail( function ( data ) {
+							console.error( data );
+
+							// Action fired if modal content AJAX request is failed
+							wp.hooks.doAction( 'um-modal-after-ajax-fail', $modal, data, res );
 						} );
 
 					} else {
@@ -173,7 +180,7 @@
 
 		/**
 		 * Add and display a modal overlay
-		 * @returns {object}                 A modal overlay jQuery object.
+		 * @returns {object}  A modal overlay jQuery object.
 		 */
 		addOverlay: function () {
 			if ( $( 'body > .um-modal-overlay' ).length < 1 ) {
@@ -258,8 +265,8 @@
 
 		/**
 		 * Filter modal options
-		 * @param   {Object} options  Modal options.
-		 * @returns {Object}          Modal options.
+		 * @param   {object} options  Modal options.
+		 * @returns {object}          Modal options.
 		 */
 		filterOptions: function (options) {
 
@@ -280,8 +287,8 @@
 
 		/**
 		 * Get the current modal
-		 * @param   {Object} modal  A modal element. Optional.
-		 * @returns {Object|null}   A modal jQuery object or NULL.
+		 * @param   {object} modal  A modal element. Optional.
+		 * @returns {object|null}   A modal jQuery object or NULL.
 		 */
 		getModal: function (modal) {
 			let $modal;
@@ -305,8 +312,8 @@
 
 		/**
 		 * Hide current modal
-		 * @param   {Object} modal  A modal element. Optional.
-		 * @returns {Object|null}   Hidden modal if exists.
+		 * @param   {object} modal  A modal element. Optional.
+		 * @returns {object|null}   Hidden modal if exists.
 		 */
 		hide: function (modal) {
 			let $modal = this.getModal( modal );
@@ -330,7 +337,7 @@
 		/**
 		 *
 		 * @param   {Boolean} isLoading  The modal is awaiting a request.
-		 * @param   {Object} modal       A modal element. Optional.
+		 * @param   {object} modal       A modal element. Optional.
 		 * @returns {ModalManagerUM}
 		 */
 		loading: function (isLoading, modal) {
@@ -435,6 +442,7 @@
 		/**
 		 * Update a modal content
 		 * @param   {string} content  A new content
+		 * @param   {object} modal    A modal element. Optional.
 		 * @returns {ModalManagerUM}
 		 */
 		setContent: function (content, modal) {
@@ -442,6 +450,7 @@
 
 			if ( $modal ) {
 				$modal.find( '.um-modal-body' ).html( content );
+				this.responsive( $modal );
 
 				/**
 				 * UM Hook
@@ -487,7 +496,7 @@
 
 		/**
 		 * Stop event propagation
-		 * @param {object} e  jQuery.Event
+		 * @param {object} e  jQuery event object.
 		 */
 		stopEvent: function (e) {
 			e.preventDefault();
@@ -515,27 +524,30 @@
 		UM.modal.responsive();
 	});
 
-
+	/**
+	 * Add modal for the button
+	 * @param   {object} options  Modal properties. Optional.
+	 * {
+			{object} attributes,
+			{string} classes,
+			{number} duration,
+			{string} footer,
+			{string} header,
+			{string} size,
+			{string} template,
+			{function|object|string} content
+		 }
+	 * @returns {object}
+	 */
 	$.fn.umModal = function( options ) {
-		const settings = $.extend({
-			// These are the defaults.
-			classes:  '',
-			duration: 400, // ms
-			footer:   '',
-			header:   '',
-			size:     'normal', // small, normal, large
-			content:  '',
-		}, options );
+		const settings = UM.modal.filterOptions( options );
 
-		this.each( function( element ) {
-			let $button = $( this );
+		this.each( function( i, item ) {
+			let $button = $( item );
 
 			if ( ! $button.data( 'um-modal-ready' ) ) {
 				$button.on( 'click', function(e) {
 					e.preventDefault();
-					// console.log( this );
-					// console.log( $button );
-					// console.log( e );
 
 					settings.relatedButton = $button;
 
