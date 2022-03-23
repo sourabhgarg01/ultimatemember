@@ -53,7 +53,7 @@ if ( ! class_exists( 'um\common\Field' ) ) {
 			$forms = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'um_form'" );
 			foreach ( $forms as $form_id ) {
 				$form_fields = get_post_meta( $form_id, '_um_custom_fields', true );
-				if ( empty( $form_fields ) ) {
+				if ( empty( $form_fields ) || ! is_array( $form_fields ) ) {
 					$form_fields = array();
 				}
 				unset( $form_fields[ $key ] );
