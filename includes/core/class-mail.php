@@ -94,6 +94,14 @@ if ( ! class_exists( 'um\core\Mail' ) ) {
 		function prepare_template( $slug, $args = array() ) {
 			ob_start();
 
+			$module = $template_path = '';
+			if ( ! empty( $args['module'] ) ) {
+				$module = $args['module'];
+			}
+			if ( ! empty( $args['template_path'] ) ) {
+				$template_path = $args['template_path'];
+			}
+
 			if ( UM()->options()->get( 'email_html' ) ) {
 
 				/**
@@ -172,7 +180,7 @@ if ( ! class_exists( 'um\core\Mail' ) ) {
 
 				<body <?php echo $body_attrs ?>>
 
-				<?php um_get_template( "email/{$slug}.php", $args ); ?>
+				<?php um_get_template( "email/{$slug}.php", $args, $module, $template_path ); ?>
 				<?php /*echo $this->get_email_template( $slug, $args );*/ ?>
 
 				</body>
@@ -183,7 +191,7 @@ if ( ! class_exists( 'um\core\Mail' ) ) {
 				//strip tags in plain text email
 				//important don't use HTML in plain text emails!
 				//$raw_email_template = $this->get_email_template( $slug, $args );
-				$raw_email_template = um_get_template_html( "email/{$slug}.php", $args );
+				$raw_email_template = um_get_template_html( "email/{$slug}.php", $args, $module, $template_path );
 				$plain_email_template = strip_tags( $raw_email_template );
 				if ( $plain_email_template !== $raw_email_template ) {
 					$plain_email_template = preg_replace( array('/&nbsp;/mi', '/^\s+/mi'), array( ' ', '' ), $plain_email_template );
@@ -258,7 +266,7 @@ if ( ! class_exists( 'um\core\Mail' ) ) {
 
 			$subject = wp_unslash( um_convert_tags( $subject , $args ) );
 
-			$this->subject = html_entity_decode( $subject, ENT_QUOTES, 'UTF-8' ); 
+			$this->subject = html_entity_decode( $subject, ENT_QUOTES, 'UTF-8' );
 
 			$this->message = $this->prepare_template( $template, $args );
 
